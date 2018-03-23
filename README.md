@@ -2,9 +2,9 @@
 
 ### Description  
 
-This repository holds code shared across the testbed softwares, such as CBTM and the Aggregate Manager.  
+This repository holds code which can be shared across testbed softwares deployed in all FUTEBOL partners, such as CBTM.  
 
-The goal of this repository is to incrementally build a modular solution that can be shared across all FUTEBOL testbeds in all partners. Our first action was to come up with a database model which can abstract enough details to cover the implementation on all testbeds.  
+The goal of this repository is to incrementally build a modular solution that can be shared across FUTEBOL testbeds in all partners. Our first action was to come up with a database model which can abstract enough details to cover the implementation on all testbeds.  
 
 Our first model is depicted below:  
 ![testbd](testbd_model.png)  
