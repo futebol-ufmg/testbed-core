@@ -1,6 +1,6 @@
 # Classes Description
 
-![Class Diagram](docs/classes.png) 
+![Class Diagram](../docs/classes.png) 
 
 ### NodeCBTM
 
