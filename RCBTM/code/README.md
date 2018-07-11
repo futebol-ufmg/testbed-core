@@ -5,12 +5,12 @@
 ### NodeCBTM
 
 * **Description:** Abstract Class that represents a basic node in the testbed.
-* **Location:** cbtm_node.py
+* **Location:** nodecbtm.py
 
 ### HostCBTM
 
 * **Description:** Class that represents a user that are using a resource in the testbed.
-* **Location:** cbtm_host.py
+* **Location:** hostcbtm.py
 
 ### Container, VirtualMachine, USRP, TelosB, SwitchOpenFlow, RaspberryPI
 
