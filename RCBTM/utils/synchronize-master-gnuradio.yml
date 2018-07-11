@@ -1,0 +1,8 @@
+---
+- hosts: racks
+  remote_user: scamallra
+  tasks:
+    - name: Syncronize GNURadio Master Image
+      synchronize:
+        src: ~/master-imgs/master-gnuradio.img
+        dest: ~/cbtm-pool

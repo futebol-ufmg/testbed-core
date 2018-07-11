@@ -1,0 +1,55 @@
+---
+- hosts: all
+  remote_user: cbtmadmin
+  tasks:
+    - name: Get source for GNURadio
+      git: repo='https://github.com/gnuradio/gnuradio.git'
+           dest=~/gnuradio
+    - name: Install basic utilities (C++ compiler)
+      apt: name=build-essential
+      become: true
+    - name: Install BOOST
+      apt: name=libboost-all-dev update_cache=yes
+      become: true
+    - name: Install FFTw
+      apt: name=libfftw3-dev update_cache=yes
+      become: true
+    - name: Install CMake
+      apt: name=cmake update_cache=yes
+      become: true
+    - name: Install Cheetah
+      apt: name=python-cheetah
+      become: true
+    - name: Install Numpy
+      apt: name=python-numpy
+      become: true
+    - name: Install GSL
+      apt: name=libgsl0-dev
+      become: true
+    - name: Install SWIG
+      apt: name=swig
+      become: true
+    - name: Install Zero MQ
+      apt: name=libzmq5-dev
+      become: true
+    - name: Install C++ Unit
+      apt: name=libcppunit-dev
+      become: true
+    - name: Make Build Directory
+      file: path=~/gnuradio/build state=directory
+    - name: CMake GNURadio
+      command: cmake ../
+      args:
+        chdir: ~/gnuradio/build
+    - name: Make GNURadio (-j 8)
+      command: make -j 8
+      args:
+        chdir: ~/gnuradio/build
+    - name: Install GNURadio
+      command: make install
+      become: true
+      args:
+        chdir: /home/cbtmadmin/gnuradio/build
+    - name: Running ldconfig
+      command: ldconfig
+      become: true

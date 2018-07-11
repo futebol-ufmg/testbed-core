@@ -1,0 +1,7 @@
+---
+- hosts: usrpracks
+  remote_user: nodeuser
+  tasks:
+    - name: Activate Storage Pool
+      sudo: true
+      command: virsh pool-undefine cbtm-pool

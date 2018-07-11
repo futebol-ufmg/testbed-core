@@ -1,0 +1,8 @@
+---
+- hosts: racks
+  remote_user: scamallra
+  tasks:
+    - name: Syncronize IRIS Master Image
+      synchronize:
+        src: ~/master-imgs/master-iris.img
+        dest: ~/cbtm-pool

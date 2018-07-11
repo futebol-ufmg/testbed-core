@@ -1,0 +1,16 @@
+---
+- hosts: all
+  remote_user: cbtmadmin
+  tasks:
+    - name: copy change_usrp_ip.sh
+      copy: src=./change_usrp_ip.sh
+            dest=/etc/change_usrp_ip.sh
+            owner=root
+            group=root
+            mode=755
+      become: true
+    - name: run script at init from rc.local
+      lineinfile: dest=/etc/rc.local 
+            insertbefore='exit 0'
+            line='/etc/change_usrp_ip.sh'
+      become: true

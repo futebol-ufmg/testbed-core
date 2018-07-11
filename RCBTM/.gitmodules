@@ -1,0 +1,3 @@
+[submodule "code/testbed_modules"]
+	path = code/testbed_modules
+	url = https://github.com/futebol-ufmg/testbed_modules

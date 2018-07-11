@@ -1,0 +1,12 @@
+---
+- hosts: racks
+  remote_user: scamallra
+  tasks:
+    - name: Create a directory for the pool
+      file: path=~/cbtm-pool state=directory
+    - name: Create Storage Pool
+      command: virsh pool-define-as cbtm-pool dir --target ~/cbtm-pool
+    - name: Activate Storage Pool
+      command: virsh pool-start cbtm-pool
+    - name: Auto-start Storage Pool
+      command: virsh pool-autostart cbtm-pool

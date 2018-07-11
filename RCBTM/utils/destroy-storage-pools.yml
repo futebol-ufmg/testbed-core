@@ -1,0 +1,7 @@
+---
+- hosts: usrpracks
+  remote_user: nodeuser
+  tasks:
+    - name: Stop Storage Pool
+      sudo: true
+      command: virsh pool-destroy cbtm-pool
