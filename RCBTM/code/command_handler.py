@@ -58,33 +58,38 @@ class CommandHandler(object):
                 self.operator.log.debug(m)
                 deny = True
             else:
-                host = node.get_host()
-                if node.is_raw():
-                    self.operator.log.debug(
-                        "[REQUEST_UNIT] HANDLER BEFORE ISRAWBEINGUSED")
-
-                    used = self.operator.isRawBeingUsed(host)
-
-                    if not used:
-                        # COMPLETED: Accept request, deny = false - MATHEUS
-                        self.operator.log.debug(
-                            '[REQUEST_UNIT] REQUESTED RASP IS FREE: ' +
-                            str(host))
-                        deny = False
-                    else:
-                        deny = True
+                use, booted, ip = self.operator.check_resource_status(node)
+                if use:
+                    deny = True
                 else:
-                    try:
-                        # Looks up if there is already a defined VM in that
-                        # host using the standard VM name.
-                        # If there is, the USRP is busy
-                        dname = "basic_eu_" + str(res_num)
-                        domain = \
-                            host.get_conn_info().conn.lookupByName(dname)
-                        deny = True
-                    except Exception:
-                        # If the VM does not yet exist, the request is accepted
-                        deny = False
+                    deny = False
+                # host = node.get_host()
+                # if node.is_raw():
+                #     self.operator.log.debug(
+                #         "[REQUEST_UNIT] HANDLER BEFORE ISRAWBEINGUSED")
+
+                #     used = self.operator.isRawBeingUsed(host)
+
+                #     if not used:
+                #         # COMPLETED: Accept request, deny = false - MATHEUS
+                #         self.operator.log.debug(
+                #             '[REQUEST_UNIT] REQUESTED RASP IS FREE: ' +
+                #             str(host))
+                #         deny = False
+                #     else:
+                #         deny = True
+                # else:
+                #     try:
+                #         # Looks up if there is already a defined VM in that
+                #         # host using the standard VM name.
+                #         # If there is, the USRP is busy
+                #         dname = "basic_eu_" + str(res_num)
+                #         domain = \
+                #             host.get_conn_info().conn.lookupByName(dname)
+                #         deny = True
+                #     except Exception:
+                #         # If the VM does not yet exist, the request is accepted
+                #         deny = False
 
         # ============ ACCEPT OR DENY REQUEST DEPENDING ON RESOURCE
         # AVAILABILITY
@@ -180,16 +185,16 @@ class CommandHandler(object):
             self.break_flags[key].set()
 
     def start_unit(self, res_num):
-        self.operator.vms.start_vm(self.operator.rm.get_resource(res_num))
+        self.operator.start_resource(self.operator.rm.get_resource(res_num))
         # self.operator.start_vm(self.operator.rm.get_resource(res_num))
         return 'ok'
 
     def shutdown_unit(self, res_num):
-        self.operator.vms.stop_vm(self.operator.rm.get_resource(res_num))
+        self.operator.stop_resource(self.operator.rm.get_resource(res_num))
         return 'ok'
 
     def restart_unit(self, res_num):
-        self.operator.vms.restart_vm(self.operator.rm.get_resource(res_num))
+        self.operator.restart_resource(self.operator.rm.get_resource(res_num))
         return 'ok'
 
     def make_clean(self, non_active_resources):
@@ -203,4 +208,3 @@ class CommandHandler(object):
 
     def update(self):
         self.operator.rm.update()
-

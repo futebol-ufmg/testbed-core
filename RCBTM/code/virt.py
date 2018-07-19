@@ -15,7 +15,7 @@ import libvirt
 import xml.etree.ElementTree as ET
 import logging
 
-from ctrl_utils import POOL_NAME
+from testbed_modules.resource_utils.src.ctrl_utils import POOL_NAME
 
 DHCP_LEASES_PATH='/var/lib/dhcp/dhcpd.leases'
 
