@@ -8,6 +8,7 @@ import cbtm_logging
 
 from resource_list import ResourceList
 from resource_monitor_cbtm import ResourceMonitorCBTM
+from resource_monitor_zabbix import ZabbixMonitorCBTM
 from testbed_modules.resource_utils.src.cbtm_resource import CBTM_Resource
 
 
@@ -24,6 +25,8 @@ class ResourceOperator(object):
 
         self.log.info('Obtaining available resources')
         self.rm = ResourceMonitorCBTM()
+        if args.zabbix:
+            self.rm = ZabbixMonitorCBTM(args.verbose)
         self.rm.update()
         self.log.info('Resource nodes info:\n' +
                       '\n'.join(map(str,
@@ -59,35 +62,6 @@ class ResourceOperator(object):
                 resources.use[res_id] = use
                 resources.booted[res_id] = booted
                 resources.ips[res_id] = ip
-            # if node.is_raw():
-            #     resources.use[res_id] = self.isRawBeingUsed(host)
-            #     resources.ips[res_id] = host.get_ip()
-            #     resources.booted[res_id] = True
-
-            # elif conn:
-            #     vm_names = conn.get_all_vms()
-            #     if vm_names == []:
-            #         continue   # No VMs defined in this rack. Move to next Rack
-
-            #     for vm in vm_names:
-            #         # Check if VM is an USRP VM, otherwise skip it
-            #         #if self.get_vm_name(res_id) not in vm:
-            #         if self.vms.get_vm_name(res_id) in vm:
-            #             continue
-            #         # For each VM, get interfaces IPs
-            #         ext_ip = conn.get_vm_info(vm)
-
-            #         # get USRP id from the (rack, interface) tupple
-            #         # res_id = vm[9:]
-            #         resources.use[res_id] = True
-            #         resources.ips[res_id] = ext_ip
-            #         try:
-            #             dom = conn.conn.lookupByName(vm)
-            #             if dom.isActive():
-            #                 resources.booted[res_id] = True
-            #         except Exception:
-            #             raise
-
         return resources
 
     def check_resource_status(self, node):
@@ -114,10 +88,7 @@ class ResourceOperator(object):
         return "ok"
 
     def allocate_resource(self, node, img_type, user, ssh_key, break_flag):
-        # if img_type == 'raspberry':
-        # TODO: MAKE RESOURCE
         resource = CBTM_Resource.factory(self.log, node)
-        # TODO: CALL ALLOCATE ON RESOURCE
         resource.allocate(user, ssh_key, img_type, break_flag)
 
     def deallocate_resource(self, node):

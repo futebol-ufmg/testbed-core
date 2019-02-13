@@ -1,5 +1,5 @@
 class ResourceList(object):
-    ''' 
+    '''
     Class that holds a list of USRP parameters. This class
 
     Attributes:

@@ -16,6 +16,8 @@ outlock = threading.Lock()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='CBTM Tesbed Manager')
+    parser.add_argument('-z', '--zabbix', default=False, action='store_true',
+                        help='Select whether to use zabbix as a health monitor or not.')
     parser.add_argument('--log-level', action="store", type=str,
                         choices=["critical", "error", "warning", "info",
                                  "debug", "notset"], default="info",

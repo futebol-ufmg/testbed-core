@@ -29,7 +29,8 @@ class Node(object):
         return self.default_image
 
     def __repr__(self):
-        return '%s:%s(%s)/%s'%(self.id,self.hardware,self.usb,str(self.images))
+        return '%s:%s(%s)/%s' % (self.id, self.hardware,
+                                 self.usb, str(self.images))
 
     def __str__(self):
-        return '%s:%s'%(self.id,self.hardware)
+        return '%s:%s' % (self.id, self.hardware)
