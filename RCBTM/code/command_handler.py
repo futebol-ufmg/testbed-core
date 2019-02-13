@@ -15,6 +15,7 @@ class CommandHandler(object):
         self.operator.log.debug("Initializing Handler")
 
         self.make_threads = {}
+        self.make_vlan_threads = {}
         self.break_flags = {}
         self.del_threads = {}
 
@@ -47,14 +48,12 @@ class CommandHandler(object):
             self.operator.log.debug(msg)
             deny = True
         else:
-
             # Looks up the corresponding host name to the specified RESOURCE
             # number
             node = self.operator.rm.get_resource(res_num)
             # host = node.get_host()
             if node is None:
                 m = "[REQUEST_UNIT] Resource unknown or unavailable.Try Again."
-
                 self.operator.log.debug(m)
                 deny = True
             else:
@@ -63,34 +62,6 @@ class CommandHandler(object):
                     deny = True
                 else:
                     deny = False
-                # host = node.get_host()
-                # if node.is_raw():
-                #     self.operator.log.debug(
-                #         "[REQUEST_UNIT] HANDLER BEFORE ISRAWBEINGUSED")
-
-                #     used = self.operator.isRawBeingUsed(host)
-
-                #     if not used:
-                #         # COMPLETED: Accept request, deny = false - MATHEUS
-                #         self.operator.log.debug(
-                #             '[REQUEST_UNIT] REQUESTED RASP IS FREE: ' +
-                #             str(host))
-                #         deny = False
-                #     else:
-                #         deny = True
-                # else:
-                #     try:
-                #         # Looks up if there is already a defined VM in that
-                #         # host using the standard VM name.
-                #         # If there is, the USRP is busy
-                #         dname = "basic_eu_" + str(res_num)
-                #         domain = \
-                #             host.get_conn_info().conn.lookupByName(dname)
-                #         deny = True
-                #     except Exception:
-                #         # If the VM does not yet exist, the request is accepted
-                #         deny = False
-
         # ============ ACCEPT OR DENY REQUEST DEPENDING ON RESOURCE
         # AVAILABILITY
         if deny:
@@ -168,8 +139,15 @@ class CommandHandler(object):
                 # print str(node)
                 use, boot, vm_ip = self.operator.check_resource_status(node)
                 if not use:
+                    self.operator.log('resource  ' + str(res_num) + ' returned free status!!!')
                     return 'unit_status:free'
                 elif boot:
+                    if str(vm_ip) == '0.0.0.0':
+                        self.operator.log.debug('resource  ' +
+                                                str(res_num) +
+                                                ' RETURNED IP 0.0.0.0 ' +
+                                                'as normal IP')
+                        return 'unit_status:failed'
                     return 'unit_status:' + str(vm_ip)
                 else:
                     return 'unit_status:failed'
