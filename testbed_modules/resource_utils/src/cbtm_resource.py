@@ -27,6 +27,10 @@ class CBTM_Resource(Resource):
 
     # The following code implements the Factory Method design pattern
     def factory(log, node):
+        if node.get_id() >= 90:
+            return OpenSTF(log, node)
+        if node.get_id() >= 80:
+            return VirtualMachine(log, node)
         if node.get_id() > 60:
             return TelosB(log, node)
         if node.get_id() > 50:
@@ -74,23 +78,24 @@ class CBTM_Resource(Resource):
         if raw:
             COMMAND += ' && sudo usermod -aG testbed ${USER}' + \
                        ' && sudo usermod -aG docker ${USER}' + \
-                       ' && sudo cp -r' + \
-                       ' /home/futebol/base_home/. /home/${USER}' + \
-                       ' || echo "Nothing on base_home"' + \
+                       ' && sudo usermod -aG lxd ${USER}' + \
+                       ' || echo "No group lxd"' + \
+                       ' && sudo touch /home/${USER}/.Xauthority ' + \
                        ' && sudo chown -R ${USER}:${USER} /home/${USER}/.'
 
-            if('ubuntu' in img_type) or ((img_type == 'ethanol') or
-                                         (img_type == 'srslte')):
-
-                # When allocating a container, modify bash_profile in user's
-                # base_home to contain the chosen image, and bind an ethernet
-                # interface inside the container
-                COMMAND += '&& sudo sed -i "s/run.sh/run.sh ${IMG_TYPE}/g"' + \
-                           ' /home/${USER}/.bash_profile '
+            # When allocating a container, modify bash_profile in user's
+            # base_home to contain the chosen image, and bind an ethernet
+            # interface inside the container
+            COMMAND += ' && sudo cp -r' + \
+                       ' /home/${BASE_USER}/base_home/. /home/${USER}' + \
+                       ' && sudo sed -i "s/run.sh/run.sh ${IMG_TYPE}/g"' + \
+                       ' /home/${USER}/.bash_profile '
         else:
             COMMAND += ' && sudo usermod -aG sudo ${USER}' + \
                        ' && sudo usermod -aG usrp ${USER}' + \
                        ' || echo "No group usrp"' + \
+                       '  && sudo usermod -aG lxd ${USER}' + \
+                       ' || echo "No group lxd"' + \
                        ' && sudo cp -r /home/cbtm/* /home/${USER}/ ' + \
                        ' || echo "Nothing on home"' + \
                        '&& sudo chown -R ${USER}:${USER} /home/${USER}/.'
@@ -101,7 +106,8 @@ class CBTM_Resource(Resource):
 
         COMMAND = COMMAND.replace('${USER}', user) \
                          .replace('${SSH_KEY}', ssh_key) \
-                         .replace('${IMG_TYPE}', img_type)
+                         .replace('${IMG_TYPE}', img_type) \
+                         .replace('${BASE_USER}', base_user)
 
         self.log.debug('COMMAND: \n' + COMMAND)
         # Sometimes the connection is refused, probably because the ssh server
@@ -117,51 +123,29 @@ class CBTM_Resource(Resource):
 
         while attempts < maximum_attempts:
             self.log.debug('Back at loop, attempts:   \n' + str(attempts))
-            # print 'before first lock'
             with outlock:
-                # print 'inside first lock'
-                ssh = subprocess.Popen(['ssh', '-o',
-                                        'UserKnownHostsFile=/dev/null', '-o',
-                                        'StrictHostKeyChecking=no', '-t', '%s'
-                                        % HOST, COMMAND], shell=False,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-                # result = self.run_command(HOST, COMMAND)
-                # print 'exiting first lock'
-            # print 'before second lock'
+                args = ['-o', 'UserKnownHostsFile=/dev/null',
+                        '-o', 'StrictHostKeyChecking=no']
+                stdout, stderr = \
+                    ctrl_utils.run_command(self.log, HOST, COMMAND, args=args)
             with outlock:
-                # print 'inside second lock'
-                stderr = ""
-                stdout = ""
-                stdout = ssh.stdout.read()
-                stderr = ssh.stderr.read()
                 self.log.debug('Stdout :' + str(stdout))
                 self.log.debug('Stderr :' + str(stderr))
-                # self.log.debug('[CREATE_USER] Stdout:' +
-                #    str(result))
-                # print 'exiting second lock'
 
             # If the SSH connection was rejected, try again
             if stderr == std_error_msg or 'refused' in stderr:
-                # print 'before third lock'
                 with outlock:
-                    # print 'inside third lock'
                     self.log.error('[CREATE USER] Connection Refused \
                         when creating user.' + ' Attempt :' + str(attempts))
                     self.log.debug('Stderr:\n' + str(stderr))
                     self.log.debug('Stdout:\n' + str(stdout))
-                    # self.log.debug('Stdout:\n' + str(result))
-                    # print 'exiting third lock'
                 attempts += 1
                 time.sleep(sleep_time)
             else:
-                # print 'before fourth lock'
                 with outlock:
-                    # print 'inside fourth lock'
                     self.log.debug('[CREATE USER] Successfully created user.')
                     self.log.debug('Stderr:\n' + str(stderr))
                     self.log.debug('Stdout:\n' + str(stdout))
-                    # print 'exiting fourth lock'
                 break
 
     def delete_user(self):
@@ -175,9 +159,8 @@ class CBTM_Resource(Resource):
         fullpath = base_user + '@' + ip
 
         COMMAND = 'cat /etc/group | grep testbed'
-        # error_message = 'Unable to retrieve user data, delete user failed.'
 
-        result = ctrl_utils.run_command(self.log, fullpath, COMMAND)
+        result, err = ctrl_utils.run_command(self.log, fullpath, COMMAND)
 
         if result:
             user_name = result.rstrip('\n').split(':')[-1]
@@ -186,21 +169,20 @@ class CBTM_Resource(Resource):
 
         if user_name:
             COMMAND = 'sudo pkill -u ' + user_name
-            # print 'running command:', COMMAND
-            result = ctrl_utils.run_command(self.log, fullpath, COMMAND)
+
+            result, err = ctrl_utils.run_command(self.log, fullpath, COMMAND)
             if 'error' in result:
                 return False
             COMMAND = "docker rm -f $(docker ps -a | tail -n +2" + \
                       " | awk '{print $1}' ) &> /dev/null"
 
-            # print 'running command:', COMMAND
-            result = ctrl_utils.run_command(self.log, fullpath, COMMAND)
+            result, err = ctrl_utils.run_command(self.log, fullpath, COMMAND)
             if 'error' in result:
                 return False
 
             COMMAND = 'sudo deluser --remove-home ' + user_name
-            # print 'running command:', COMMAND
-            result = ctrl_utils.run_command(self.log, fullpath, COMMAND)
+
+            result, err = ctrl_utils.run_command(self.log, fullpath, COMMAND)
             if 'error' in result:
                 return False
 
@@ -215,12 +197,7 @@ class CBTM_Resource(Resource):
         # check if there is any user in group testbed
         COMMAND = 'cat /etc/group | grep testbed'
 
-        ssh = subprocess.Popen(["ssh", "%s" % fullpath, COMMAND], shell=False,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-
-        read = ssh.stdout.read()
-        # read_err = ssh.stderr.read()
+        read, err = ctrl_utils.run_command(self.log, fullpath, COMMAND)
 
         result = str(read)[:-1].split(':')[-1]
         print 'RESULT SSH RAW IS BEING USED:', bool(result)
@@ -281,7 +258,9 @@ class VirtualMachine(CBTM_Resource):
         return result
 
     def get_vm_name(self):
-        # comentario
+        """ Returns a string containing the default name for a VM
+        defined in the current node
+        """
         return 'basic_eu_' + str(self.node.get_id())
 
     def make_vm(self, user, ssh_key, img_type, break_flag):
@@ -309,7 +288,7 @@ class VirtualMachine(CBTM_Resource):
             ctrl_utils.copy_image('master-' + img_type, 'basic_eu_' +
                                   res_num, host)
 
-            img_name = 'basic_eu_' + res_num + '.img'
+            img_name = self.get_vm_name() + '.img'
 
             vm_xml = ctrl_utils.create_xml(self.node,
                                            ctrl_utils.get_pool_path(host) +
@@ -329,8 +308,7 @@ class VirtualMachine(CBTM_Resource):
             time0 = time.time()
             self.log.debug("Starting to get IP")
             while out_ip == '0.0.0.0':
-                out_ip = host.get_conn_info().get_vm_info('basic_eu_' +
-                                                          res_num)
+                out_ip = host.get_conn_info().get_vm_info(self.get_vm_name())
                 if time.time() - time0 > 240:
                     out_ip = '0.0.0.0'
                     break
@@ -463,7 +441,10 @@ class VirtualMachine(CBTM_Resource):
             dom = \
                 conn_info.conn.lookupByName(self.get_vm_name())
             use = True
-        except Exception:
+        except Exception as e:
+            self.log.debug('ERROR checking VM status: ' + str(e))
+            self.log.debug('This error is expected, since the existance \
+                            of the vm is being checked')
             # self.log.warning("Cloud not find the USRP" + str(usrp_num))
             use = False
             booted = False
@@ -479,36 +460,40 @@ class VirtualMachine(CBTM_Resource):
         return use, booted, ip
 
     def get_resource_info(self):
-        host = self.node.get_host()
-        conn = host.get_conn_info()
-        use = False
-        booted = False
-        ip = '0.0.0.0'
-        if conn:
-            vm_names = conn.get_all_vms()
-            if vm_names == []:
-                # No VMs defined in this rack. Move to next Rack
-                return None, None, None
+        return self.get_status()
 
-            for vm in vm_names:
-                # Check if VM is an USRP VM, otherwise skip it
-                # if self.get_vm_name(res_id) not in vm:
-                if self.get_vm_name() in vm:
-                    continue
-                # For each VM, get interfaces IPs
-                ext_ip = conn.get_vm_info(vm)
 
-                # get USRP id from the (rack, interface) tupple
-                # res_id = vm[9:]
-                use = True
-                ip = ext_ip
-                try:
-                    dom = conn.conn.lookupByName(vm)
-                    if dom.isActive():
-                        booted = True
-                except Exception:
-                    raise
-        return use, booted, ip
+class OpenSTF(VirtualMachine):
+    def __init__(self, log, node):
+        super(OpenSTF, self).__init__(log, node)
+
+    def get_command_compose_build(self):
+        return 'cd /home/${USER}/openstf/ && \
+                sudo docker-compose up -d --build &&\
+                sudo usermod -aG docker ${USER}'
+
+    def make_docker_compose(self, user, ssh_key, img_type, ip, base_user):
+
+        try:
+            self.log.debug('Try to build DOCKER-COMPOSE')
+
+            HOST = base_user + '@' + ip
+
+            COMMAND = str(self.get_command_compose_build())\
+                .replace('${USER}', user)
+
+            self.log.debug('COMMAND: \n' + COMMAND)
+            args = ['-o', 'UserKnownHostsFile=/dev/null',
+                    '-o', 'StrictHostKeyChecking=no']
+            stdout, stderr = \
+                ctrl_utils.run_command(self.log, HOST, COMMAND, args=args)
+
+        except Exception as e:
+            self.log.debug('Error build DOCKER-COMPOSE' + str(e))
+
+    def allocate(self, user, ssh_key, img_type, break_flag):
+        vm_ip = self.make_vm(user, ssh_key, img_type, break_flag)
+        self.make_docker_compose(user, ssh_key, img_type, vm_ip, 'cbtm')
 
 
 class OpenFlowSwitch(CBTM_Resource):
@@ -520,6 +505,23 @@ class RaspberryPI(CBTM_Resource):
     def __init__(self, log, node):
         super(RaspberryPI, self).__init__(log, node)
 
+    def get_status(self):
+        host = self.node.get_host()
+        if self.isRawBeingUsed():
+            use = True
+            booted = True
+            ip = host.get_ip()
+        else:
+            use = False
+            booted = False
+            ip = '0.0.0.0'
+        return use, booted, ip
+
+    def deallocate(self):
+        super(RaspberryPI, self).deallocate()
+        self.log.debug('Resource %s removed' %
+                       self.node.host.get_name())
+
 
 class TelosB(CBTM_Resource):
     def __init__(self, log, node):
@@ -529,22 +531,6 @@ class TelosB(CBTM_Resource):
 class Container(CBTM_Resource):
     def __init__(self, log, node):
         super(Container, self).__init__(log, node)
-
-    def clear_image_choice(self):
-        ip = str(self.node.host.get_ip())
-
-        base_user = str(self.node.host.get_user())
-
-        fullpath = base_user + '@' + ip
-
-        COMMAND = 'sudo sed -i "s/futebolufmg.\+/ ' + \
-                  'image_type/g" /opt/docker-wifi/run.sh'
-        # print 'running command:', COMMAND
-        result = ctrl_utils.run_command(self.log, fullpath, COMMAND)
-        if 'error' in result:
-            return False
-        else:
-            return True
 
     def get_status(self):
         host = self.node.get_host()
@@ -560,8 +546,5 @@ class Container(CBTM_Resource):
 
     def deallocate(self):
         super(Container, self).deallocate()
-        if self.node.is_raw():
-            if 'ubuntu' in self.node.get_default_image():
-                self.clear_image_choice()
-            self.log.debug('Resource %s removed' %
-                           self.node.host.get_name())
+        self.log.debug('Resource %s removed' %
+                       self.node.host.get_name())

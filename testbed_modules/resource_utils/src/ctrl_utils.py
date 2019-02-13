@@ -12,24 +12,23 @@ def get_pool_path(host):
     return POOL_PATH.replace('${USER}', host.get_user())
 
 
-def run_command(log, fullpath, COMMAND):
-        result = 'error'
-        try:
-            ssh = subprocess.Popen(["ssh", "%s" % fullpath, COMMAND],
-                                   shell=False, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
+def run_command(log, fullpath, COMMAND, args=[]):
+    result = 'error'
+    try:
+        ssh = subprocess.Popen(["ssh"] + args +
+                               ["%s" % fullpath, COMMAND],
+                               shell=False, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
 
-            result = ssh.stdout.read()
-            err = ssh.stderr.read()
-            if err:
-                log.debug('ERROR: ' + str(err))
-            # print "Inside run_command"
-            # print str(result)
-        except Exception as e:
-            log.debug(str(e))
-            return 'error'
+        result = ssh.stdout.read()
+        err = ssh.stderr.read()
+        if err:
+            log.debug('ERROR on ctrl_utils run_command: ' + str(err))
+    except Exception as e:
+        log.debug("EXCEPTION on ctrl_utils run_command: " + str(e))
+        return 'error'
 
-        return str(result)
+    return str(result), err
 
 
 def read_xml(xmlPath):
