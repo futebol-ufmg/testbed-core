@@ -1,8 +1,0 @@
----
-- hosts: racks
-  remote_user: scamallra
-  tasks:
-    - name: Syncronize Plain Master Image
-      synchronize:
-        src: ~/master-imgs/master-plain.img
-        dest: ~/cbtm-pool
