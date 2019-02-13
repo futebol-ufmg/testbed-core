@@ -1,5 +1,7 @@
 # Dependencies installation script
 
+sudo apt-mark hold libvirt-bin
+
 # Install apt dependencies
 sudo apt-get install -qy gcc make pkg-config libxml2-dev libgnutls-dev \
 libdevmapper-dev libcurl4-gnutls-dev python-dev python-pip libpciaccess-dev \
@@ -50,3 +52,11 @@ sudo sed -i "s/#stdio_handler\ =\ \"logd\"\
 # Install UHD and USRP drivers
 sudo apt-get install -qy gnuradio 
 sudo apt-get install libuhd-dev libuhd003 uhd-host
+
+# Install docker and lxd
+# Docker
+curl -fsSL get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# LXD
+sudo apt install -t zfsutils-linux lxd lxd-client
